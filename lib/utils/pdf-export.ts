@@ -507,17 +507,17 @@ export function exportMembersPDF(
   y = addSectionTitle(doc, `Full Directory  (${members.length} members)`, y)
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Full Name', 'Gender', 'Age', 'Phone', 'Branch', 'Source', 'Registered']],
+    head: [['#', 'Full Name', 'Gender', 'Age', 'Baptism Yr', 'Phone', 'Branch', 'Source', 'Registered']],
     body: members.map((m, i) => {
       const age = m.date_of_birth
         ? Math.floor((Date.now() - new Date(m.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365))
         : 'N/A'
-      const branch = branches.find(b => b.id === m.branch_id)?.name || 'N/A'
+      const branch = branches.find((b: any) => b.id === m.branch_id)?.name || 'N/A'
       const source = m.registration_source === 'admin' ? 'Admin' : 'Self'
       const regDate = m.created_at
         ? new Date(m.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
         : 'N/A'
-      return [i + 1, m.full_name, m.gender, age, m.phone_number, branch, source, regDate]
+      return [i + 1, m.full_name, m.gender, age, m.baptism_year ?? '—', m.phone_number, branch, source, regDate]
     }),
     theme: 'grid',
     headStyles: { fillColor: BLACK, textColor: WHITE, fontSize: 7.5, fontStyle: 'bold' },
@@ -526,7 +526,8 @@ export function exportMembersPDF(
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
       3: { cellWidth: 10, halign: 'center' },
-      6: { cellWidth: 14, halign: 'center' },
+      4: { cellWidth: 16, halign: 'center' },
+      7: { cellWidth: 12, halign: 'center' },
     },
     margin: { left: 14, right: 14 },
   })

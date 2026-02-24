@@ -29,6 +29,7 @@ export default function RegisterPage() {
     home_address: '',
     branch_id: '',
     email: '',
+    baptism_year: '',
   })
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function RegisterPage() {
         home_address: formData.home_address,
         branch_id: formData.branch_id,
         email: formData.email || null,
-        baptism_year: null,
+        baptism_year: formData.baptism_year ? parseInt(formData.baptism_year) : null,
       })
 
       if (result.error) {
@@ -104,6 +105,7 @@ export default function RegisterPage() {
           home_address: '',
           branch_id: branches.length === 1 ? branches[0].id : '',
           email: '',
+          baptism_year: '',
         })
         setPhoneCheckStatus('idle')
       }
@@ -235,6 +237,21 @@ export default function RegisterPage() {
                 required
                 disabled={loading}
                 max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            {/* Baptism Year */}
+            <div className="space-y-2">
+              <Label htmlFor="baptism_year">Baptism Year (Optional)</Label>
+              <Input
+                id="baptism_year"
+                type="number"
+                placeholder={String(new Date().getFullYear())}
+                min="1900"
+                max={new Date().getFullYear()}
+                value={formData.baptism_year}
+                onChange={(e) => setFormData({ ...formData, baptism_year: e.target.value })}
+                disabled={loading}
               />
             </div>
 
