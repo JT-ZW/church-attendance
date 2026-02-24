@@ -12,7 +12,13 @@ interface EventQRCodeProps {
 
 export default function EventQRCode({ event }: EventQRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const checkInUrl = `${process.env.NEXT_PUBLIC_APP_URL}/checkin/${event.qr_token}`
+
+  // Use the actual origin so the URL is always correct in any environment
+  // (localhost in dev, the Vercel domain in production)
+  const baseUrl = typeof window !== 'undefined'
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_APP_URL || ''
+  const checkInUrl = `${baseUrl}/checkin/${event.qr_token}`
 
   useEffect(() => {
     if (canvasRef.current) {
