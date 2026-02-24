@@ -30,7 +30,7 @@ export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderB
             cy="50%"
             labelLine={false}
             label={({ name, value, percent }) => 
-              `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+              `${name}: ${value} (${((percent ?? 0) * 100).toFixed(0)}%)`
             }
             outerRadius={80}
             fill="#8884d8"
