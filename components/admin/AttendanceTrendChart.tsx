@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 interface AttendanceTrendData {
@@ -13,15 +14,24 @@ interface AttendanceTrendChartProps {
 }
 
 export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps) {
-  const safeData = data ?? []
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  const safeData = (data ?? []).map(d => ({
+    date: d.date ?? '',
+    event: d.event ?? '',
+    attendance: d.attendance ?? 0,
+  }))
+
+  if (!mounted) return <div style={{ height: 320 }} />
 
   if (safeData.length === 0) {
     return <div className="h-80 flex items-center justify-center text-gray-400 text-sm">No trend data available</div>
   }
 
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
+    <div style={{ height: 320 }}>
+      <ResponsiveContainer width="100%" height={320}>
         <LineChart data={safeData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 

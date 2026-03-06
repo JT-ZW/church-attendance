@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 
 interface GenderBreakdownChartProps {
@@ -13,6 +14,9 @@ const COLORS = {
 }
 
 export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderBreakdownChartProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const total = (maleCount ?? 0) + (femaleCount ?? 0)
 
   // Recharts PieChart crashes on zero-value slices — only include slices with count > 0
@@ -20,6 +24,8 @@ export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderB
     { name: 'Male', value: maleCount ?? 0 },
     { name: 'Female', value: femaleCount ?? 0 },
   ].filter((d) => d.value > 0)
+
+  if (!mounted) return <div style={{ height: 320 }} />
 
   if (total === 0 || data.length === 0) {
     return (
@@ -30,8 +36,8 @@ export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderB
   }
 
   return (
-    <div className="h-80">
-      <ResponsiveContainer width="100%" height="100%">
+    <div style={{ height: 320 }}>
+      <ResponsiveContainer width="100%" height={320}>
         <PieChart>
           <Pie
             data={data}
