@@ -123,7 +123,7 @@ export default function EventAttendanceList({ eventId, initialAttendance, eventT
             No attendance records yet
           </div>
         ) : (
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>

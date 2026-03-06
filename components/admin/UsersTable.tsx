@@ -234,7 +234,7 @@ export default function UsersTable() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-white">
+      <div className="border rounded-lg bg-white overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -316,7 +316,7 @@ export default function UsersTable() {
 
       {/* ---- Create Dialog ---- */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Admin User</DialogTitle>
             <DialogDescription>
@@ -487,7 +487,7 @@ export default function UsersTable() {
 
       {/* ---- Edit Dialog ---- */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Admin User</DialogTitle>
             <DialogDescription>{editState?.email}</DialogDescription>

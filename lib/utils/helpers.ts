@@ -48,7 +48,8 @@ export function getAgeGroup(dateOfBirth: string | Date): string {
   return '60+'
 }
 
-export function maskPhoneNumber(phone: string): string {
+export function maskPhoneNumber(phone: string | null | undefined): string {
+  if (!phone) return 'N/A'
   if (phone.length < 4) return phone
   const lastFour = phone.slice(-4)
   const masked = phone.slice(0, -4).replace(/\d/g, '*')

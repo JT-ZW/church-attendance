@@ -7,7 +7,7 @@ import { formatDateTime, maskPhoneNumber } from '@/lib/utils/helpers'
 interface TopAttendee {
   id: string
   name: string
-  phone: string
+  phone: string | null
   attendanceCount: number
   lastAttendance: string | null
 }
@@ -17,6 +17,7 @@ interface TopAttendeesListProps {
 }
 
 export default function TopAttendeesList({ attendees }: TopAttendeesListProps) {
+  const safe = attendees ?? []
   return (
     <Card>
       <CardHeader>
@@ -26,11 +27,11 @@ export default function TopAttendeesList({ attendees }: TopAttendeesListProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {attendees.length === 0 ? (
+        {safe.length === 0 ? (
           <p className="text-center text-gray-500 py-8">No attendance data yet</p>
         ) : (
           <div className="space-y-3">
-            {attendees.map((attendee, index) => (
+            {safe.map((attendee, index) => (
               <div
                 key={attendee.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -40,7 +41,7 @@ export default function TopAttendeesList({ attendees }: TopAttendeesListProps) {
                     {index + 1}
                   </div>
                   <div>
-                    <p className="font-medium">{attendee.name}</p>
+                    <p className="font-medium">{attendee.name ?? 'Unknown'}</p>
                     <p className="text-sm text-gray-500">
                       {maskPhoneNumber(attendee.phone)}
                     </p>

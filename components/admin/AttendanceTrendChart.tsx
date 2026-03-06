@@ -10,9 +10,9 @@ interface AttendanceTrendChartProps {
   data: AttendanceTrendData[]
 }
 
-const CHART_H = 280
-const CHART_W = 600
-const PADDING = { top: 20, right: 20, bottom: 56, left: 44 }
+const CHART_H = 260
+const CHART_W = 480
+const PADDING = { top: 20, right: 16, bottom: 56, left: 40 }
 
 export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps) {
   const safe = (data ?? []).map(d => ({
@@ -58,8 +58,8 @@ export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps
   const labelEvery = Math.max(1, Math.ceil(safe.length / 8))
 
   return (
-    <div className="overflow-x-auto">
-      <svg width={CHART_W} height={CHART_H} className="block mx-auto">
+    <div className="overflow-x-auto -mx-2">
+      <svg width={CHART_W} height={CHART_H} className="block mx-auto" style={{ minWidth: CHART_W }}>
         <defs>
           <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"  stopColor="#3b82f6" stopOpacity={0.2} />

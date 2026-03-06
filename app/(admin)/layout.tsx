@@ -27,8 +27,9 @@ export default async function AdminLayout({
     <AdminProvider role={role} branchId={branchId}>
       <div className="flex h-screen bg-gray-100">
         <AdminSidebar user={user} role={role} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto p-6">
+        {/* pt-14 on mobile offsets the fixed top bar; md:pt-0 removes it on desktop */}
+        <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
+          <div className="container mx-auto p-4 md:p-6">
             {children}
           </div>
         </main>

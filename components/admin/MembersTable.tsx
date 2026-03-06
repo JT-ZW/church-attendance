@@ -168,7 +168,7 @@ export default function MembersTable() {
                 Add Member
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingMember ? 'Edit Member' : 'Add New Member'}
@@ -211,7 +211,7 @@ export default function MembersTable() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg bg-white">
+      <div className="border rounded-lg bg-white overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

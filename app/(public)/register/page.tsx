@@ -181,7 +181,7 @@ export default function RegisterPage() {
   // ── Success screen ──────────────────────────────────────────────────────────
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-slate-100 px-4 py-8">
         <Card className="w-full max-w-md border-gray-200 shadow-xl">
           <CardHeader>
             <CardTitle className="text-center text-green-600">Registration Successful!</CardTitle>
@@ -206,7 +206,7 @@ export default function RegisterPage() {
 
   // ── Registration form ───────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-slate-100 px-4 py-8">
       <Card className="w-full max-w-2xl border-gray-200 shadow-xl">
         <CardHeader className="text-center space-y-3">
           <CardTitle className="text-3xl font-serif">Member Registration</CardTitle>
@@ -297,7 +297,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Gender */}
               <div className="space-y-2">
                 <Label htmlFor="gender">
@@ -379,7 +379,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Baptism Year */}
               <div className="space-y-2">
                 <Label htmlFor="baptism_year">Baptism Year (Optional)</Label>
@@ -471,7 +471,7 @@ export default function RegisterPage() {
                       </Select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Full Name */}
                       <div className="col-span-2 space-y-1">
                         <Label className="text-xs text-gray-500">

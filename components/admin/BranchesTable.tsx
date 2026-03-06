@@ -182,7 +182,7 @@ export default function BranchesTable() {
         </Dialog>
       </div>
 
-      <div className="border rounded-lg bg-white">
+      <div className="border rounded-lg bg-white overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

@@ -13,7 +13,7 @@ export default async function CheckInPage({ params }: { params: Promise<{ token:
     event = await getEventByToken(token)
   } catch (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-slate-100 px-4">
         <Card className="w-full max-w-md border-gray-200">
           <CardHeader>
             <div className="flex justify-center mb-4">
@@ -33,7 +33,7 @@ export default async function CheckInPage({ params }: { params: Promise<{ token:
 
   if (!event.is_active) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-slate-100 px-4">
         <Card className="w-full max-w-md border-gray-200">
           <CardHeader>
             <div className="flex justify-center mb-4">
@@ -61,7 +61,7 @@ export default async function CheckInPage({ params }: { params: Promise<{ token:
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-gray-50 to-slate-100 px-4 py-8">
       <div className="w-full max-w-md space-y-4">
         {/* Event Info Card */}
         <Card className="border-gray-200">

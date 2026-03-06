@@ -11,9 +11,9 @@ interface AgeDistributionChartProps {
   data: AgeDistributionData[]
 }
 
-const CHART_H = 280
-const CHART_W = 560
-const PADDING = { top: 20, right: 20, bottom: 48, left: 40 }
+const CHART_H = 260
+const CHART_W = 480
+const PADDING = { top: 20, right: 16, bottom: 48, left: 36 }
 
 export default function AgeDistributionChart({ data }: AgeDistributionChartProps) {
   const safe = (data ?? []).map(d => ({
@@ -43,8 +43,8 @@ export default function AgeDistributionChart({ data }: AgeDistributionChartProps
   const barH = (val: number) => (val / maxVal) * innerH
 
   return (
-    <div className="overflow-x-auto">
-      <svg width={CHART_W} height={CHART_H} className="block mx-auto">
+    <div className="overflow-x-auto -mx-2">
+      <svg width={CHART_W} height={CHART_H} className="block mx-auto" style={{ minWidth: CHART_W }}>
         <g transform={`translate(${PADDING.left},${PADDING.top})`}>
           {/* Y-axis grid + labels */}
           {yTicks.map((tick, i) => {
