@@ -13,14 +13,15 @@ const COLORS = {
 }
 
 export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderBreakdownChartProps) {
+  const total = (maleCount ?? 0) + (femaleCount ?? 0)
+
+  // Recharts PieChart crashes on zero-value slices — only include slices with count > 0
   const data = [
     { name: 'Male', value: maleCount ?? 0 },
     { name: 'Female', value: femaleCount ?? 0 },
-  ]
+  ].filter((d) => d.value > 0)
 
-  const total = (maleCount ?? 0) + (femaleCount ?? 0)
-
-  if (total === 0) {
+  if (total === 0 || data.length === 0) {
     return (
       <div className="h-80 flex items-center justify-center text-gray-400 text-sm">
         No member data available
@@ -37,21 +38,23 @@ export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderB
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ name, value, percent }) => 
-              `${name}: ${value} (${((percent ?? 0) * 100).toFixed(0)}%)`
-            }
             outerRadius={80}
-            fill="#8884d8"
             dataKey="value"
+            isAnimationActive={false}
           >
             {data.map((entry) => (
-              <Cell 
-                key={`cell-${entry.name}`} 
-                fill={entry.name === 'Male' ? COLORS.male : COLORS.female} 
+              <Cell
+                key={`cell-${entry.name}`}
+                fill={entry.name === 'Male' ? COLORS.male : COLORS.female}
               />
             ))}
           </Pie>
-          <Tooltip />
+          <Tooltip
+            formatter={(value: number | undefined, name: string | undefined) => [
+              `${value ?? 0} (${total > 0 ? Math.round(((value ?? 0) / total) * 100) : 0}%)`,
+              name ?? '',
+            ]}
+          />
           <Legend />
         </PieChart>
       </ResponsiveContainer>

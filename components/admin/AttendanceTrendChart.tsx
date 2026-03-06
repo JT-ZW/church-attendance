@@ -56,6 +56,7 @@ export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps
             name="Attendance"
             dot={{ r: 4 }}
             activeDot={{ r: 6 }}
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

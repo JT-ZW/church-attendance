@@ -29,8 +29,8 @@ export default function AgeDistributionChart({ data }: AgeDistributionChartProps
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="male" fill="#3b82f6" name="Male" />
-          <Bar dataKey="female" fill="#ec4899" name="Female" />
+          <Bar dataKey="male" fill="#3b82f6" name="Male" isAnimationActive={false} />
+          <Bar dataKey="female" fill="#ec4899" name="Female" isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
