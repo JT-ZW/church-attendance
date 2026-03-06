@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-
 interface AgeDistributionData {
   name: string
   total: number
@@ -14,36 +11,103 @@ interface AgeDistributionChartProps {
   data: AgeDistributionData[]
 }
 
-export default function AgeDistributionChart({ data }: AgeDistributionChartProps) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
+const CHART_H = 280
+const CHART_W = 560
+const PADDING = { top: 20, right: 20, bottom: 48, left: 40 }
 
-  const safeData = (data ?? []).map(d => ({
-    ...d,
-    male: d.male ?? 0,
-    female: d.female ?? 0,
-    total: d.total ?? 0,
+export default function AgeDistributionChart({ data }: AgeDistributionChartProps) {
+  const safe = (data ?? []).map(d => ({
+    name:   String(d.name   ?? ''),
+    male:   Number(d.male   ?? 0),
+    female: Number(d.female ?? 0),
   }))
 
-  if (!mounted) return <div className="h-80" />
-
-  if (safeData.length === 0) {
-    return <div className="h-80 flex items-center justify-center text-gray-400 text-sm">No age data available</div>
+  if (safe.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-gray-400 text-sm" style={{ height: CHART_H }}>
+        No age data available
+      </div>
+    )
   }
 
+  const maxVal = Math.max(...safe.flatMap(d => [d.male, d.female]), 1)
+  const innerW  = CHART_W - PADDING.left - PADDING.right
+  const innerH  = CHART_H - PADDING.top  - PADDING.bottom
+
+  const groupW  = innerW / safe.length
+  const barW    = Math.min(groupW * 0.32, 28)
+  const gap     = 3
+
+  const yTicks = [...new Set([0, 0.25, 0.5, 0.75, 1].map(f => Math.round(f * maxVal)))]
+
+  const barH = (val: number) => (val / maxVal) * innerH
+
   return (
-    <div style={{ height: 320 }}>
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={safeData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="male" fill="#3b82f6" name="Male" isAnimationActive={false} />
-          <Bar dataKey="female" fill="#ec4899" name="Female" isAnimationActive={false} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="overflow-x-auto">
+      <svg width={CHART_W} height={CHART_H} className="block mx-auto">
+        <g transform={`translate(${PADDING.left},${PADDING.top})`}>
+          {/* Y-axis grid + labels */}
+          {yTicks.map((tick, i) => {
+            const y = innerH - (tick / maxVal) * innerH
+            return (
+              <g key={`ytick-${i}`}>
+                <line x1={0} y1={y} x2={innerW} y2={y} stroke="#e5e7eb" strokeWidth={1} />
+                <text x={-6} y={y + 4} textAnchor="end" fontSize={11} fill="#9ca3af">{tick}</text>
+              </g>
+            )
+          })}
+
+          {/* Bars */}
+          {safe.map((group, i) => {
+            const cx = i * groupW + groupW / 2
+            const mx = cx - gap / 2 - barW
+            const fx = cx + gap / 2
+            return (
+              <g key={group.name}>
+                {/* Male bar */}
+                <rect
+                  x={mx}
+                  y={innerH - barH(group.male)}
+                  width={barW}
+                  height={barH(group.male)}
+                  fill="#3b82f6"
+                  rx={2}
+                />
+                {/* Female bar */}
+                <rect
+                  x={fx}
+                  y={innerH - barH(group.female)}
+                  width={barW}
+                  height={barH(group.female)}
+                  fill="#ec4899"
+                  rx={2}
+                />
+                {/* X axis label */}
+                <text
+                  x={cx}
+                  y={innerH + 18}
+                  textAnchor="middle"
+                  fontSize={11}
+                  fill="#6b7280"
+                >
+                  {group.name}
+                </text>
+              </g>
+            )
+          })}
+
+          {/* X axis baseline */}
+          <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#d1d5db" strokeWidth={1} />
+        </g>
+
+        {/* Legend */}
+        <g transform={`translate(${CHART_W / 2 - 64}, ${CHART_H - 14})`}>
+          <rect x={0}  y={0} width={10} height={10} fill="#3b82f6" rx={2} />
+          <text x={14} y={9} fontSize={11} fill="#6b7280">Male</text>
+          <rect x={60} y={0} width={10} height={10} fill="#ec4899" rx={2} />
+          <text x={74} y={9} fontSize={11} fill="#6b7280">Female</text>
+        </g>
+      </svg>
     </div>
   )
 }

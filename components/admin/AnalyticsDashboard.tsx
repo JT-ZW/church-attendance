@@ -14,16 +14,12 @@ import {
   getAttendanceRate,
 } from '@/lib/actions/analytics'
 import type { Branch } from '@/lib/types/database.types'
-import dynamic from 'next/dynamic'
 import { exportAnalyticsPDF } from '@/lib/utils/pdf-export'
+import AgeDistributionChart from './AgeDistributionChart'
+import AttendanceTrendChart from './AttendanceTrendChart'
+import GenderBreakdownChart from './GenderBreakdownChart'
 import TopAttendeesList from './TopAttendeesList'
 import { useAdminContext } from '@/components/admin/AdminProvider'
-
-// Dynamic imports prevent Recharts from running server-side (SSR),
-// which causes width/height -1 errors and internal null crashes.
-const AgeDistributionChart = dynamic(() => import('./AgeDistributionChart'), { ssr: false })
-const AttendanceTrendChart = dynamic(() => import('./AttendanceTrendChart'), { ssr: false })
-const GenderBreakdownChart = dynamic(() => import('./GenderBreakdownChart'), { ssr: false })
 
 export default function AnalyticsDashboard() {
   const { branchId, isBranchAdmin } = useAdminContext()
@@ -68,7 +64,7 @@ export default function AnalyticsDashboard() {
         getAnalyticsSummary(branchId),
         getAgeDistribution(branchId),
         getAttendanceTrends(branchId, 90),
-        getTopAttendees(branchId, 10),
+        getTopAttendees(branchId, 5),
         getAttendanceRate(branchId),
       ])
 
