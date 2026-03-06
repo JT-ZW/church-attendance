@@ -6,8 +6,8 @@ import { Calendar, MapPin, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { getEvents } from '@/lib/actions/events'
-import { getEventStats } from '@/lib/actions/events'
+import { getEvents, getEventStats } from '@/lib/actions/events'
+import { useAdminContext } from '@/components/admin/AdminProvider'
 import { formatDateTime } from '@/lib/utils/helpers'
 import type { Event } from '@/lib/types/database.types'
 
@@ -24,16 +24,17 @@ interface EventWithStats extends Event {
 
 export default function RecentEvents() {
   const router = useRouter()
+  const { branchId } = useAdminContext()
   const [events, setEvents] = useState<EventWithStats[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadEvents()
-  }, [])
+  }, [branchId])
 
   async function loadEvents() {
     try {
-      const eventsData = await getEvents()
+      const eventsData = await getEvents(branchId ?? undefined)
       
       // Get stats for each event
       const eventsWithStats = await Promise.all(

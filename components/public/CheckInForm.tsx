@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, CheckCircle2 } from 'lucide-react'
+import { Search, CheckCircle2, Users } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { searchMembers } from '@/lib/actions/members'
-import { checkIn } from '@/lib/actions/attendance'
+import { searchMembers, getFamilyMembers } from '@/lib/actions/members'
+import { familyCheckIn } from '@/lib/actions/attendance'
 import { calculateAge, maskPhoneNumber } from '@/lib/utils/helpers'
-import type { Event } from '@/lib/types/database.types'
+import type { Event, FamilyMemberCheckIn } from '@/lib/types/database.types'
 
 interface CheckInFormProps {
   event: Event & {
@@ -22,10 +22,11 @@ interface CheckInFormProps {
 interface MemberSearchResult {
   id: string
   full_name: string
-  phone_number: string
+  phone_number: string | null
   date_of_birth: string
   gender: string
   branch_id: string
+  branches: { name: string }[] | null
 }
 
 export default function CheckInForm({ event }: CheckInFormProps) {
@@ -36,6 +37,11 @@ export default function CheckInForm({ event }: CheckInFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [searching, setSearching] = useState(false)
+  // Family check-in state
+  const [familyMembers, setFamilyMembers] = useState<FamilyMemberCheckIn[]>([])
+  const [selectedFamilyIds, setSelectedFamilyIds] = useState<Set<string>>(new Set())
+  const [loadingFamily, setLoadingFamily] = useState(false)
+  const [checkInResult, setCheckInResult] = useState<{ checkedIn: number; alreadyIn: number } | null>(null)
 
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
@@ -52,7 +58,7 @@ export default function CheckInForm({ event }: CheckInFormProps) {
   async function handleSearch() {
     setSearching(true)
     try {
-      const results = await searchMembers(searchTerm, event.branch_id)
+      const results = await searchMembers(searchTerm)
       setSearchResults(results)
     } catch (err) {
       console.error('Search error:', err)
@@ -65,6 +71,44 @@ export default function CheckInForm({ event }: CheckInFormProps) {
     setSelectedMember(member)
     setSearchResults([])
     setSearchTerm(member.full_name)
+    // Reset family state whenever a different person is selected
+    setFamilyMembers([])
+    setSelectedFamilyIds(new Set())
+  }
+
+  // Whenever a member is confirmed selected (search result gone), load their family
+  useEffect(() => {
+    if (!selectedMember) return
+    let cancelled = false
+    async function loadFamily() {
+      setLoadingFamily(true)
+      try {
+        const members = await getFamilyMembers(selectedMember!.id, event.id)
+        if (!cancelled) {
+          setFamilyMembers(members)
+          // Pre-select family members who have NOT yet checked in
+          const toSelect = new Set(
+            members.filter((m) => !m.already_checked_in).map((m) => m.id)
+          )
+          setSelectedFamilyIds(toSelect)
+        }
+      } catch {
+        // No family or error — silently ignore
+      } finally {
+        if (!cancelled) setLoadingFamily(false)
+      }
+    }
+    loadFamily()
+    return () => { cancelled = true }
+  }, [selectedMember, event.id])
+
+  function toggleFamilyMember(id: string) {
+    setSelectedFamilyIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
 
   async function handleCheckIn() {
@@ -74,18 +118,26 @@ export default function CheckInForm({ event }: CheckInFormProps) {
     setError(null)
 
     try {
-      const result = await checkIn(selectedMember.id, event.id)
+      // Always include the primary member; add any ticked family members
+      const allIds = [selectedMember.id, ...Array.from(selectedFamilyIds)]
+      const result = await familyCheckIn(allIds, event.id)
 
       if (result.error) {
         setError(result.error)
       } else {
+        setCheckInResult({
+          checkedIn: result.data!.checked_in.length,
+          alreadyIn: result.data!.already_checked_in.length,
+        })
         setSuccess(true)
-        // Reset after 3 seconds
         setTimeout(() => {
           setSuccess(false)
           setSelectedMember(null)
           setSearchTerm('')
-        }, 3000)
+          setFamilyMembers([])
+          setSelectedFamilyIds(new Set())
+          setCheckInResult(null)
+        }, 4000)
       }
     } catch (err: any) {
       setError(err.message || 'Check-in failed')
@@ -95,6 +147,8 @@ export default function CheckInForm({ event }: CheckInFormProps) {
   }
 
   if (success) {
+    const total = (checkInResult?.checkedIn ?? 0) + (checkInResult?.alreadyIn ?? 0)
+    const newlyIn = checkInResult?.checkedIn ?? 0
     return (
       <div className="text-center space-y-4 py-8">
         <div className="flex justify-center">
@@ -104,12 +158,21 @@ export default function CheckInForm({ event }: CheckInFormProps) {
         </div>
         <div>
           <h3 className="text-xl font-semibold text-green-600">Check-in Successful!</h3>
-          <p className="text-gray-600 mt-2">
-            Welcome, {selectedMember?.full_name}
-          </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Your attendance has been recorded
-          </p>
+          {total === 1 ? (
+            <p className="text-gray-600 mt-2">Welcome, {selectedMember?.full_name}!</p>
+          ) : (
+            <>
+              <p className="text-gray-600 mt-2">
+                Welcome, {selectedMember?.full_name} and family!
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {newlyIn} member{newlyIn !== 1 ? 's' : ''} checked in
+                {checkInResult!.alreadyIn > 0 && (
+                  <>, {checkInResult!.alreadyIn} already recorded</>  
+                )}
+              </p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -149,7 +212,7 @@ export default function CheckInForm({ event }: CheckInFormProps) {
             >
               <p className="font-medium">{member.full_name}</p>
               <div className="flex gap-3 text-sm text-gray-600 mt-1">
-                <span>{maskPhoneNumber(member.phone_number)}</span>
+                <span>{maskPhoneNumber(member.phone_number ?? '')}</span>
                 <span>•</span>
                 <span>{member.gender}</span>
                 <span>•</span>
@@ -179,9 +242,67 @@ export default function CheckInForm({ event }: CheckInFormProps) {
           <p className="text-sm text-gray-600 mb-2">Checking in as:</p>
           <p className="font-semibold text-lg">{selectedMember.full_name}</p>
           <div className="flex gap-3 text-sm text-gray-600 mt-1">
-            <span>{maskPhoneNumber(selectedMember.phone_number)}</span>
+            <span>{maskPhoneNumber(selectedMember.phone_number ?? '')}</span>
             <span>•</span>
             <span>{selectedMember.gender}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Cross-branch notice */}
+      {selectedMember && selectedMember.branch_id !== event.branch_id && (
+        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="mt-0.5 shrink-0 text-base">ℹ️</span>
+          <p>
+            <span className="font-medium">Not your home branch.</span>{' '}
+            You are registered at{' '}
+            <span className="font-medium">{selectedMember.branches?.[0]?.name ?? 'another branch'}</span>,
+            but this event is hosted by{' '}
+            <span className="font-medium">{event.branches?.name ?? 'a different branch'}</span>.
+            You can still check in!
+          </p>
+        </div>
+      )}
+
+      {/* Family members section */}
+      {selectedMember && loadingFamily && (
+        <p className="text-sm text-gray-500">Checking for family members...</p>
+      )}
+      {selectedMember && !loadingFamily && familyMembers.length > 0 && (
+        <div className="border rounded-lg border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
+            <Users className="h-4 w-4 text-gray-500" />
+            <p className="text-sm font-medium text-gray-700">Also check in family members?</p>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {familyMembers.map((fm) => (
+              <label
+                key={fm.id}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  fm.already_checked_in ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={fm.already_checked_in || selectedFamilyIds.has(fm.id)}
+                  onChange={() => !fm.already_checked_in && toggleFamilyMember(fm.id)}
+                  disabled={fm.already_checked_in || loading}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">{fm.full_name}</p>
+                  <p className="text-xs text-gray-500">
+                    {fm.family_role &&
+                      fm.family_role.charAt(0).toUpperCase() + fm.family_role.slice(1)}
+                    {' · '}
+                    {calculateAge(fm.date_of_birth)} yrs
+                    {fm.already_checked_in && (
+                      <span className="ml-2 text-green-600 font-medium">✓ Already checked in</span>
+                    )}
+                  </p>
+                </div>
+              </label>
+            ))}
           </div>
         </div>
       )}

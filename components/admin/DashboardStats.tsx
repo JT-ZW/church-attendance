@@ -7,6 +7,7 @@ import { getMembers } from '@/lib/actions/members'
 import { getEvents } from '@/lib/actions/events'
 import { getBranches } from '@/lib/actions/branches'
 import { createClient } from '@/lib/supabase/client'
+import { useAdminContext } from '@/components/admin/AdminProvider'
 
 interface DashboardData {
   totalMembers: number
@@ -19,6 +20,7 @@ interface DashboardData {
 }
 
 export default function DashboardStats() {
+  const { branchId } = useAdminContext()
   const [data, setData] = useState<DashboardData>({
     totalMembers: 0,
     totalEvents: 0,
@@ -32,20 +34,25 @@ export default function DashboardStats() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [branchId])
 
   async function loadData() {
     try {
+      const scopedBranchId = branchId ?? undefined
       const [members, events, branches] = await Promise.all([
-        getMembers(),
-        getEvents(),
+        getMembers(scopedBranchId),
+        getEvents(scopedBranchId),
         getBranches(),
       ])
 
       const supabase = createClient()
-      const { count: attendanceCount } = await supabase
+      let attendanceQuery = supabase
         .from('attendance')
-        .select('*', { count: 'exact', head: true })
+        .select('*, events!inner(branch_id)', { count: 'exact', head: true })
+      if (scopedBranchId) {
+        attendanceQuery = attendanceQuery.eq('events.branch_id', scopedBranchId)
+      }
+      const { count: attendanceCount } = await attendanceQuery
 
       setData({
         totalMembers: members.length,

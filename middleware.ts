@@ -39,7 +39,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/members') ||
     request.nextUrl.pathname.startsWith('/events') ||
     request.nextUrl.pathname.startsWith('/branches') ||
-    request.nextUrl.pathname.startsWith('/analytics')
+    request.nextUrl.pathname.startsWith('/analytics') ||
+    request.nextUrl.pathname.startsWith('/users')
 
   if (isAdminRoute && !user) {
     const url = request.nextUrl.clone()
@@ -52,20 +53,34 @@ export async function middleware(request: NextRequest) {
     const lastActivityCookie = request.cookies.get('last_activity')
     const now = Date.now()
 
-    if (lastActivityCookie) {
-      const lastActivity = parseInt(lastActivityCookie.value, 10)
-      if (!isNaN(lastActivity) && now - lastActivity > INACTIVITY_TIMEOUT_MS) {
-        await supabase.auth.signOut()
-        const url = request.nextUrl.clone()
-        url.pathname = '/login'
-        url.searchParams.set('reason', 'inactivity')
-        const redirectResponse = NextResponse.redirect(url)
-        redirectResponse.cookies.delete('last_activity')
-        return redirectResponse
-      }
+    // Determine whether the session should be expired:
+    // - Cookie is absent means either it was never set (shouldn't happen after fixing login)
+    //   or its maxAge elapsed (i.e. 30+ minutes of inactivity)
+    // - Cookie exists but timestamp is stale (belt-and-suspenders check)
+    const isExpired =
+      !lastActivityCookie ||
+      (() => {
+        const last = parseInt(lastActivityCookie.value, 10)
+        return isNaN(last) || now - last > INACTIVITY_TIMEOUT_MS
+      })()
+
+    if (isExpired) {
+      // Sign out server-side — this writes cookie deletions into supabaseResponse
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('reason', 'inactivity')
+      const redirectResponse = NextResponse.redirect(url)
+      // Propagate Supabase auth-token cookie deletions from signOut into the
+      // redirect response so the browser actually clears the session
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      redirectResponse.cookies.delete('last_activity')
+      return redirectResponse
     }
 
-    // Refresh the activity timestamp on every admin request
+    // Session is still active — refresh the activity timestamp
     supabaseResponse.cookies.set('last_activity', String(now), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

@@ -27,9 +27,11 @@ import type { Event, Branch } from '@/lib/types/database.types'
 import { formatDateTime } from '@/lib/utils/helpers'
 import EventForm from '@/components/admin/EventForm'
 import EventQRCode from '@/components/admin/EventQRCode'
+import { useAdminContext } from '@/components/admin/AdminProvider'
 
 export default function EventsTable() {
   const router = useRouter()
+  const { branchId, isBranchAdmin } = useAdminContext()
   const [events, setEvents] = useState<Event[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,12 +41,12 @@ export default function EventsTable() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [branchId])
 
   async function loadData() {
     try {
       const [eventsData, branchesData] = await Promise.all([
-        getEvents(),
+        getEvents(branchId ?? undefined),
         getBranches(),
       ])
       setEvents(eventsData)
@@ -134,6 +136,7 @@ export default function EventsTable() {
             </DialogHeader>
             <EventForm
               branches={branches}
+              lockedBranchId={isBranchAdmin ? branchId : null}
               onSuccess={() => handleDialogClose(true)}
               onCancel={() => handleDialogClose(false)}
             />

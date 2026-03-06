@@ -10,18 +10,19 @@ import type { Branch } from '@/lib/types/database.types'
 
 interface EventFormProps {
   branches: Branch[]
+  lockedBranchId?: string | null
   onSuccess: () => void
   onCancel: () => void
 }
 
-export default function EventForm({ branches, onSuccess, onCancel }: EventFormProps) {
+export default function EventForm({ branches, lockedBranchId, onSuccess, onCancel }: EventFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    branch_id: '',
+    branch_id: lockedBranchId ?? '',
     event_date: '',
     event_time: '',
   })
@@ -91,6 +92,12 @@ export default function EventForm({ branches, onSuccess, onCancel }: EventFormPr
         <Label htmlFor="branch_id">
           Branch <span className="text-red-500">*</span>
         </Label>
+        {lockedBranchId ? (
+          <div className="px-3 py-2 border rounded-md bg-gray-50 text-sm text-gray-700">
+            {branches.find((b) => b.id === lockedBranchId)?.name ?? 'Your Branch'}
+            <span className="text-xs text-gray-400 ml-2">(locked to your branch)</span>
+          </div>
+        ) : (
         <Select
           value={formData.branch_id}
           onValueChange={(value) => setFormData({ ...formData, branch_id: value })}
@@ -108,6 +115,7 @@ export default function EventForm({ branches, onSuccess, onCancel }: EventFormPr
             ))}
           </SelectContent>
         </Select>
+        )}
       </div>
 
       {/* Date and Time */}

@@ -58,6 +58,45 @@ export const selfRegistrationSchema = z.object({
 
 export type SelfRegistrationFormData = z.infer<typeof selfRegistrationSchema>
 
+// Schema for a single dependent/family member being registered alongside the head
+export const familyMemberSchema = z.object({
+  full_name: z.string().min(2, 'Full name must be at least 2 characters'),
+  gender: z.enum(['Male', 'Female'], {
+    message: 'Please select a gender',
+  }),
+  date_of_birth: z.string().refine((date) => {
+    const d = new Date(date)
+    const now = new Date()
+    return d < now
+  }, 'Date of birth must be in the past'),
+  family_role: z.enum(['spouse', 'child', 'other'], {
+    message: 'Please select a relationship',
+  }),
+  // Phone is optional for dependents (children especially)
+  phone_number: z
+    .string()
+    .regex(/^[0-9+\-\s()]+$/, 'Invalid phone number format')
+    .optional()
+    .or(z.literal('')),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  baptism_year: z
+    .number()
+    .min(1900, 'Invalid baptism year')
+    .max(new Date().getFullYear(), 'Baptism year cannot be in the future')
+    .optional()
+    .nullable(),
+})
+
+export type FamilyMemberFormData = z.infer<typeof familyMemberSchema>
+
+// Full family group registration schema
+export const familyRegistrationSchema = z.object({
+  head: selfRegistrationSchema,
+  family_members: z.array(familyMemberSchema),
+})
+
+export type FamilyRegistrationFormData = z.infer<typeof familyRegistrationSchema>
+
 // Event validation schema
 export const eventSchema = z.object({
   title: z.string().min(3, 'Event title must be at least 3 characters'),

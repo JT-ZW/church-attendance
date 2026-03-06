@@ -35,7 +35,7 @@ export type Database = {
           full_name: string
           gender: 'Male' | 'Female'
           date_of_birth: string
-          phone_number: string
+          phone_number: string | null
           baptism_year: number | null
           home_address: string
           branch_id: string
@@ -44,13 +44,16 @@ export type Database = {
           is_verified: boolean
           verified_at: string | null
           created_at: string
+          family_id: string | null
+          family_role: 'head' | 'spouse' | 'child' | 'other' | null
+          registered_by_member_id: string | null
         }
         Insert: {
           id?: string
           full_name: string
           gender: 'Male' | 'Female'
           date_of_birth: string
-          phone_number: string
+          phone_number?: string | null
           baptism_year?: number | null
           home_address: string
           branch_id: string
@@ -59,13 +62,16 @@ export type Database = {
           is_verified?: boolean
           verified_at?: string | null
           created_at?: string
+          family_id?: string | null
+          family_role?: 'head' | 'spouse' | 'child' | 'other' | null
+          registered_by_member_id?: string | null
         }
         Update: {
           id?: string
           full_name?: string
           gender?: 'Male' | 'Female'
           date_of_birth?: string
-          phone_number?: string
+          phone_number?: string | null
           baptism_year?: number | null
           home_address?: string
           branch_id?: string
@@ -74,6 +80,9 @@ export type Database = {
           is_verified?: boolean
           verified_at?: string | null
           created_at?: string
+          family_id?: string | null
+          family_role?: 'head' | 'spouse' | 'child' | 'other' | null
+          registered_by_member_id?: string | null
         }
       }
       events: {
@@ -131,6 +140,32 @@ export type Database = {
           checked_in_at?: string
         }
       }
+      admin_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          role: 'super_admin' | 'branch_admin'
+          branch_id: string | null
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          role: 'super_admin' | 'branch_admin'
+          branch_id?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          role?: 'super_admin' | 'branch_admin'
+          branch_id?: string | null
+          is_active?: boolean
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -146,9 +181,14 @@ export type Database = {
     Enums: {
       gender: 'Male' | 'Female'
       registration_source: 'admin' | 'self_registration'
+      family_role: 'head' | 'spouse' | 'child' | 'other'
+      admin_role: 'super_admin' | 'branch_admin'
     }
   }
 }
+
+// Convenience alias for family role
+export type FamilyRole = 'head' | 'spouse' | 'child' | 'other'
 
 // Helper types
 export type Branch = Database['public']['Tables']['branches']['Row']
@@ -173,4 +213,20 @@ export type EventWithBranch = Event & {
 export type AttendanceWithDetails = Attendance & {
   members: MemberWithBranch
   events: Event
+}
+
+// Family member with check-in status (used in the check-in flow)
+export type FamilyMemberCheckIn = Pick<Member, 'id' | 'full_name' | 'gender' | 'date_of_birth' | 'family_role'> & {
+  already_checked_in: boolean
+}
+
+// Admin profile types
+export type AdminRole = 'super_admin' | 'branch_admin'
+export type AdminProfile = Database['public']['Tables']['admin_profiles']['Row']
+export type InsertAdminProfile = Database['public']['Tables']['admin_profiles']['Insert']
+
+// Admin profile joined with user email (returned by listAdminUsers)
+export type AdminUser = AdminProfile & {
+  email: string
+  branch_name: string | null
 }

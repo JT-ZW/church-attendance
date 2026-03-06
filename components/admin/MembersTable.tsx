@@ -28,20 +28,22 @@ import type { Member, Branch } from '@/lib/types/database.types'
 import { calculateAge, formatDate } from '@/lib/utils/helpers'
 import { exportMembersPDF } from '@/lib/utils/pdf-export'
 import MemberForm from '@/components/admin/MemberForm'
+import { useAdminContext } from '@/components/admin/AdminProvider'
 
 export default function MembersTable() {
+  const { branchId, isBranchAdmin } = useAdminContext()
   const [members, setMembers] = useState<Member[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  const [selectedBranch, setSelectedBranch] = useState<string>(branchId ?? 'all')
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingMember, setEditingMember] = useState<Member | null>(null)
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [branchId])
 
   useEffect(() => {
     filterMembers()
@@ -50,7 +52,7 @@ export default function MembersTable() {
   async function loadData() {
     try {
       const [membersData, branchesData] = await Promise.all([
-        getMembers(),
+        getMembers(branchId ?? undefined),
         getBranches(),
       ])
       setMembers(membersData)
@@ -72,7 +74,7 @@ export default function MembersTable() {
     if (searchTerm) {
       filtered = filtered.filter((m) =>
         m.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.phone_number.includes(searchTerm)
+        (m.phone_number ?? '').includes(searchTerm)
       )
     }
 
@@ -134,6 +136,8 @@ export default function MembersTable() {
               className="pl-8"
             />
           </div>
+          {/* Branch filter — only visible to super admins */}
+          {!isBranchAdmin && (
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
@@ -146,6 +150,7 @@ export default function MembersTable() {
               </option>
             ))}
           </select>
+          )}
         </div>
         <div className="flex gap-2">
           <Button

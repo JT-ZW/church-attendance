@@ -98,3 +98,70 @@ export async function hasCheckedIn(memberId: string, eventId: string) {
 
   return !!data
 }
+
+// --------------------------------------------------------
+// Family / group check-in
+// --------------------------------------------------------
+// Checks in multiple members at once.  Members who have already checked in
+// are silently skipped — no error, no duplicate record.
+export async function familyCheckIn(memberIds: string[], eventId: string) {
+  const supabase = await createClient()
+
+  if (memberIds.length === 0) {
+    return { error: 'No members selected for check-in' }
+  }
+
+  // Verify the event is active
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('id, is_active')
+    .eq('id', eventId)
+    .single()
+
+  if (eventError || !event) {
+    return { error: 'Event not found' }
+  }
+
+  if (!event.is_active) {
+    return { error: 'This event is no longer active for check-ins' }
+  }
+
+  // Find which members have already checked in
+  const { data: existing } = await supabase
+    .from('attendance')
+    .select('member_id')
+    .eq('event_id', eventId)
+    .in('member_id', memberIds)
+
+  const alreadyCheckedInSet = new Set((existing ?? []).map((a) => a.member_id))
+  const toCheckIn = memberIds.filter((id) => !alreadyCheckedInSet.has(id))
+
+  // All already checked in — nothing to do
+  if (toCheckIn.length === 0) {
+    return {
+      data: {
+        checked_in: [] as string[],
+        already_checked_in: memberIds,
+      },
+      error: null,
+    }
+  }
+
+  // Insert new attendance records
+  const { error: insertError } = await supabase
+    .from('attendance')
+    .insert(toCheckIn.map((member_id) => ({ member_id, event_id: eventId })))
+
+  if (insertError) {
+    return { error: insertError.message }
+  }
+
+  revalidatePath(`/events/${eventId}`)
+  return {
+    data: {
+      checked_in: toCheckIn,
+      already_checked_in: Array.from(alreadyCheckedInSet),
+    },
+    error: null,
+  }
+}

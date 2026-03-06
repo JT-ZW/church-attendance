@@ -19,16 +19,26 @@ import AgeDistributionChart from './AgeDistributionChart'
 import AttendanceTrendChart from './AttendanceTrendChart'
 import GenderBreakdownChart from './GenderBreakdownChart'
 import TopAttendeesList from './TopAttendeesList'
+import { useAdminContext } from '@/components/admin/AdminProvider'
 
 export default function AnalyticsDashboard() {
+  const { branchId, isBranchAdmin } = useAdminContext()
   const [branches, setBranches] = useState<Branch[]>([])
-  const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  // Branch admins are locked to their branch; super admins default to 'all'
+  const [selectedBranch, setSelectedBranch] = useState<string>(branchId ?? 'all')
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
 
   useEffect(() => {
     loadBranches()
   }, [])
+
+  // When context branchId changes (navigation), sync the selector
+  useEffect(() => {
+    if (isBranchAdmin && branchId) {
+      setSelectedBranch(branchId)
+    }
+  }, [branchId, isBranchAdmin])
 
   useEffect(() => {
     if (branches.length > 0) {
@@ -141,6 +151,11 @@ export default function AnalyticsDashboard() {
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium">Branch:</label>
+          {isBranchAdmin ? (
+            <div className="px-3 py-2 border rounded-md bg-gray-50 text-sm text-gray-700 w-48">
+              {branches.find(b => b.id === branchId)?.name ?? 'Your Branch'}
+            </div>
+          ) : (
           <Select value={selectedBranch} onValueChange={setSelectedBranch}>
             <SelectTrigger className="w-48">
               <SelectValue />
@@ -154,6 +169,7 @@ export default function AnalyticsDashboard() {
               ))}
             </SelectContent>
           </Select>
+          )}
         </div>
         <div className="flex gap-2">
           <Button onClick={handlePDFExport} variant="outline" disabled={!data}>

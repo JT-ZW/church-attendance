@@ -9,33 +9,39 @@ import {
   MapPin, 
   BarChart3, 
   LogOut,
-  Church
+  Church,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/lib/supabase/client'
+import { logout } from '@/lib/actions/auth'
 import type { User } from '@supabase/supabase-js'
+import type { AdminRole } from '@/lib/types/database.types'
 
 interface AdminSidebarProps {
   user: User
+  role: AdminRole | null
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Members', href: '/members', icon: Users },
-  { name: 'Events', href: '/events', icon: Calendar },
-  { name: 'Branches', href: '/branches', icon: MapPin },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+const allNavItems = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, superAdminOnly: false },
+  { name: 'Members', href: '/members', icon: Users, superAdminOnly: false },
+  { name: 'Events', href: '/events', icon: Calendar, superAdminOnly: false },
+  { name: 'Branches', href: '/branches', icon: MapPin, superAdminOnly: true },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3, superAdminOnly: false },
+  { name: 'User Management', href: '/users', icon: ShieldCheck, superAdminOnly: true },
 ]
 
-export default function AdminSidebar({ user }: AdminSidebarProps) {
+export default function AdminSidebar({ user, role }: AdminSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const isSuperAdmin = role === 'super_admin'
+
+  const navigation = allNavItems.filter(
+    (item) => !item.superAdminOnly || isSuperAdmin
+  )
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    await logout()
   }
 
   return (
@@ -88,7 +94,9 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
             <p className="text-sm font-medium text-gray-700 truncate">
               {user.email}
             </p>
-            <p className="text-xs text-gray-500">Admin</p>
+            <p className="text-xs text-gray-500 capitalize">
+              {role ? role.replace('_', ' ') : 'Admin'}
+            </p>
           </div>
         </div>
         <Button
@@ -104,3 +112,4 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     </div>
   )
 }
+
