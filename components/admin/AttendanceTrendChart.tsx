@@ -13,10 +13,16 @@ interface AttendanceTrendChartProps {
 }
 
 export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps) {
+  const safeData = data ?? []
+
+  if (safeData.length === 0) {
+    return <div className="h-80 flex items-center justify-center text-gray-400 text-sm">No trend data available</div>
+  }
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={safeData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             dataKey="date" 

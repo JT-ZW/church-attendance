@@ -14,11 +14,19 @@ const COLORS = {
 
 export default function GenderBreakdownChart({ maleCount, femaleCount }: GenderBreakdownChartProps) {
   const data = [
-    { name: 'Male', value: maleCount },
-    { name: 'Female', value: femaleCount },
+    { name: 'Male', value: maleCount ?? 0 },
+    { name: 'Female', value: femaleCount ?? 0 },
   ]
 
-  const total = maleCount + femaleCount
+  const total = (maleCount ?? 0) + (femaleCount ?? 0)
+
+  if (total === 0) {
+    return (
+      <div className="h-80 flex items-center justify-center text-gray-400 text-sm">
+        No member data available
+      </div>
+    )
+  }
 
   return (
     <div className="h-80">
