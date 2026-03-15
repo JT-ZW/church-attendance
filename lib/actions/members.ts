@@ -3,10 +3,11 @@
 import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { InsertMember, Member } from '@/lib/types/database.types'
 
 export async function checkPhoneExists(phoneNumber: string) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
   
   const { data, error } = await supabase
     .from('members')
@@ -23,7 +24,7 @@ export async function checkPhoneExists(phoneNumber: string) {
 }
 
 export async function registerMember(memberData: Omit<InsertMember, 'id' | 'created_at'>) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Check if phone already exists
   if (memberData.phone_number) {
@@ -176,7 +177,7 @@ export async function registerFamilyGroup(
   head: Omit<InsertMember, 'id' | 'created_at'>,
   familyMembers: FamilyMemberInput[]
 ) {
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   // Check if head's phone already exists
   const existingPhone = await checkPhoneExists(head.phone_number!)
