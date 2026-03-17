@@ -273,7 +273,7 @@ export default function AnalyticsDashboard() {
         <CardHeader>
           <CardTitle className="font-heading">Age Distribution</CardTitle>
           <CardDescription>
-            Member age groups by gender
+            Adults (40+), Youth (12–39) and Children (under 12) by gender
           </CardDescription>
         </CardHeader>
         <CardContent>

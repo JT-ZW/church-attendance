@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -29,9 +29,23 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // Invalid/expired refresh token — clear the session and redirect to login
+    await supabase.auth.signOut()
+    supabase.auth.getSession().catch(() => {})
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value)
+    })
+    redirectResponse.cookies.delete('last_activity')
+    return redirectResponse
+  }
 
   // Protect admin routes
   const isAdminRoute =

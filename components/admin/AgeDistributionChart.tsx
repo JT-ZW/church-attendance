@@ -11,9 +11,9 @@ interface AgeDistributionChartProps {
   data: AgeDistributionData[]
 }
 
-const CHART_H = 260
-const CHART_W = 480
-const PADDING = { top: 20, right: 16, bottom: 48, left: 36 }
+const CHART_H = 280
+const CHART_W = 500
+const PADDING = { top: 20, right: 16, bottom: 64, left: 36 }
 
 export default function AgeDistributionChart({ data }: AgeDistributionChartProps) {
   const safe = (data ?? []).map(d => ({
@@ -82,16 +82,31 @@ export default function AgeDistributionChart({ data }: AgeDistributionChartProps
                   fill="#ec4899"
                   rx={2}
                 />
-                {/* X axis label */}
-                <text
-                  x={cx}
-                  y={innerH + 18}
-                  textAnchor="middle"
-                  fontSize={11}
-                  fill="#6b7280"
-                >
-                  {group.name}
-                </text>
+                {/* X axis label — wrap on space if needed */}
+                {group.name.includes(' ') ? (
+                  group.name.split(' ').map((word, wi) => (
+                    <text
+                      key={wi}
+                      x={cx}
+                      y={innerH + 18 + wi * 13}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fill="#6b7280"
+                    >
+                      {word}
+                    </text>
+                  ))
+                ) : (
+                  <text
+                    x={cx}
+                    y={innerH + 18}
+                    textAnchor="middle"
+                    fontSize={11}
+                    fill="#6b7280"
+                  >
+                    {group.name}
+                  </text>
+                )}
               </g>
             )
           })}

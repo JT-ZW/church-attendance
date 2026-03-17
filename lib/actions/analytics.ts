@@ -85,22 +85,18 @@ export async function getAgeDistribution(branchId?: string) {
 
   // Calculate age and group
   const ageGroups = {
-    '0-12': { total: 0, male: 0, female: 0 },
-    '13-18': { total: 0, male: 0, female: 0 },
-    '19-35': { total: 0, male: 0, female: 0 },
-    '36-60': { total: 0, male: 0, female: 0 },
-    '60+': { total: 0, male: 0, female: 0 },
+    'Children (Sunday School)': { total: 0, male: 0, female: 0 },
+    'Youth': { total: 0, male: 0, female: 0 },
+    'Adults': { total: 0, male: 0, female: 0 },
   }
 
   members.forEach((member) => {
     const age = calculateAge(member.date_of_birth)
     let group: keyof typeof ageGroups
 
-    if (age <= 12) group = '0-12'
-    else if (age <= 18) group = '13-18'
-    else if (age <= 35) group = '19-35'
-    else if (age <= 60) group = '36-60'
-    else group = '60+'
+    if (age < 12) group = 'Children (Sunday School)'
+    else if (age < 40) group = 'Youth'
+    else group = 'Adults'
 
     ageGroups[group].total++
     if (member.gender === 'Male') {
