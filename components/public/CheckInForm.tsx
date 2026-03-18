@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { Search, CheckCircle2, Users } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { searchMembers, getFamilyMembers } from '@/lib/actions/members'
+import { searchMembersPublic, getFamilyMembers } from '@/lib/actions/members'
 import { familyCheckIn } from '@/lib/actions/attendance'
-import { calculateAge, maskPhoneNumber } from '@/lib/utils/helpers'
+import { calculateAge } from '@/lib/utils/helpers'
 import type { Event, FamilyMemberCheckIn } from '@/lib/types/database.types'
+import type { PublicMemberSearchResult } from '@/lib/actions/members'
 
 interface CheckInFormProps {
   event: Event & {
@@ -19,15 +20,7 @@ interface CheckInFormProps {
   }
 }
 
-interface MemberSearchResult {
-  id: string
-  full_name: string
-  phone_number: string | null
-  date_of_birth: string
-  gender: string
-  branch_id: string
-  branches: { name: string }[] | null
-}
+interface MemberSearchResult extends PublicMemberSearchResult {}
 
 export default function CheckInForm({ event }: CheckInFormProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -58,7 +51,7 @@ export default function CheckInForm({ event }: CheckInFormProps) {
   async function handleSearch() {
     setSearching(true)
     try {
-      const results = await searchMembers(searchTerm)
+      const results = await searchMembersPublic(searchTerm)
       setSearchResults(results)
     } catch (err) {
       console.error('Search error:', err)
@@ -212,11 +205,11 @@ export default function CheckInForm({ event }: CheckInFormProps) {
             >
               <p className="font-medium">{member.full_name}</p>
               <div className="flex gap-3 text-sm text-gray-600 mt-1">
-                <span>{maskPhoneNumber(member.phone_number ?? '')}</span>
+                <span>{member.phone_masked}</span>
                 <span>•</span>
                 <span>{member.gender}</span>
                 <span>•</span>
-                <span>{calculateAge(member.date_of_birth)} years</span>
+                <span>{member.age} years</span>
               </div>
             </button>
           ))}
@@ -242,7 +235,7 @@ export default function CheckInForm({ event }: CheckInFormProps) {
           <p className="text-sm text-gray-600 mb-2">Checking in as:</p>
           <p className="font-semibold text-lg">{selectedMember.full_name}</p>
           <div className="flex gap-3 text-sm text-gray-600 mt-1">
-            <span>{maskPhoneNumber(selectedMember.phone_number ?? '')}</span>
+            <span>{selectedMember.phone_masked}</span>
             <span>•</span>
             <span>{selectedMember.gender}</span>
           </div>
@@ -256,7 +249,7 @@ export default function CheckInForm({ event }: CheckInFormProps) {
           <p>
             <span className="font-medium">Not your home branch.</span>{' '}
             You are registered at{' '}
-            <span className="font-medium">{selectedMember.branches?.[0]?.name ?? 'another branch'}</span>,
+            <span className="font-medium">{selectedMember.branch_name ?? 'another branch'}</span>,
             but this event is hosted by{' '}
             <span className="font-medium">{event.branches?.name ?? 'a different branch'}</span>.
             You can still check in!

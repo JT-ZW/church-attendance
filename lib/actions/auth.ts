@@ -2,15 +2,47 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const INACTIVITY_TIMEOUT_SECONDS = 30 * 60 // 30 minutes
+const MAX_FAILED_ATTEMPTS = 10
+const RATE_LIMIT_WINDOW_MINUTES = 15
 
 export async function login(email: string, password: string): Promise<{ error: string | null }> {
-  const supabase = await createClient()
+  const adminSupabase = createAdminClient()
+  const headersList = await headers()
+  const ip = headersList.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString()
 
+  // Check failed attempts by email in the rate-limit window (server-side)
+  const { count: emailFailures } = await adminSupabase
+    .from('login_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('email', email)
+    .eq('success', false)
+    .gte('attempted_at', windowStart)
+
+  // Check failed attempts by IP in the rate-limit window
+  const { count: ipFailures } = await adminSupabase
+    .from('login_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('ip_address', ip)
+    .eq('success', false)
+    .gte('attempted_at', windowStart)
+
+  if ((emailFailures ?? 0) >= MAX_FAILED_ATTEMPTS || (ipFailures ?? 0) >= MAX_FAILED_ATTEMPTS) {
+    return { error: `Too many failed login attempts. Please wait ${RATE_LIMIT_WINDOW_MINUTES} minutes before trying again.` }
+  }
+
+  const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({ email, password })
+
+  // Record the attempt — non-blocking, failure here is not critical
+  void adminSupabase
+    .from('login_attempts')
+    .insert({ email, ip_address: ip, success: !error })
 
   if (error) {
     return { error: error.message }
@@ -27,24 +59,6 @@ export async function login(email: string, password: string): Promise<{ error: s
   })
 
   return { error: null }
-}
-
-export async function signup(formData: FormData) {
-  const supabase = await createClient()
-
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
-
-  const { error } = await supabase.auth.signUp(data)
-
-  if (error) {
-    return { error: error.message }
-  }
-
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
 }
 
 export async function logout() {

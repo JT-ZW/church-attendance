@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { nanoid } from 'nanoid'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -40,12 +41,9 @@ export function calculateAge(dateOfBirth: string | Date): number {
 
 export function getAgeGroup(dateOfBirth: string | Date): string {
   const age = calculateAge(dateOfBirth)
-  
-  if (age <= 12) return '0-12'
-  if (age <= 18) return '13-18'
-  if (age <= 35) return '19-35'
-  if (age <= 60) return '36-60'
-  return '60+'
+  if (age < 12) return 'Children (Sunday School)'
+  if (age < 40) return 'Youth'
+  return 'Adults'
 }
 
 export function maskPhoneNumber(phone: string | null | undefined): string {
@@ -57,8 +55,6 @@ export function maskPhoneNumber(phone: string | null | undefined): string {
 }
 
 export function generateQRToken(): string {
-  // Generate a secure random token
-  const randomPart = Math.random().toString(36).substring(2, 15)
-  const timestampPart = Date.now().toString(36)
-  return `${randomPart}${timestampPart}`
+  // nanoid provides cryptographically secure random tokens (replaces Math.random)
+  return nanoid(32)
 }

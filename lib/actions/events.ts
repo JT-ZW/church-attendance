@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertEvent, Event } from '@/lib/types/database.types'
 import { generateQRToken } from '@/lib/utils/helpers'
+import { getCurrentAdminProfile } from '@/lib/actions/users'
 
 export async function getEvents(branchId?: string) {
   const supabase = await createClient()
@@ -18,6 +19,7 @@ export async function getEvents(branchId?: string) {
         location
       )
     `)
+    .is('deleted_at', null)
     .order('event_date', { ascending: false })
 
   if (branchId) {
@@ -27,7 +29,8 @@ export async function getEvents(branchId?: string) {
   const { data, error } = await query
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getEvents]', error)
+    throw new Error('Failed to load events')
   }
 
   return data
@@ -50,7 +53,8 @@ export async function getEventById(id: string) {
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getEventById]', error)
+    throw new Error('Failed to load event')
   }
 
   return data
@@ -73,7 +77,7 @@ export async function getEventByToken(token: string) {
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error('Event not found')
   }
 
   return data
@@ -115,7 +119,19 @@ export async function createEvent(
 }
 
 export async function updateEvent(id: string, eventData: Partial<Event>) {
+  const profile = await getCurrentAdminProfile()
+  if (!profile) return { error: 'Unauthorized' }
+
   const supabase = await createClient()
+
+  // Branch admins can only update events in their own branch
+  if (profile.role === 'branch_admin' && profile.branch_id) {
+    const { data: existing } = await supabase
+      .from('events').select('branch_id').eq('id', id).single()
+    if (!existing || existing.branch_id !== profile.branch_id) {
+      return { error: 'Unauthorized: you can only modify events in your branch' }
+    }
+  }
 
   const { data, error } = await supabase
     .from('events')
@@ -125,7 +141,8 @@ export async function updateEvent(id: string, eventData: Partial<Event>) {
     .single()
 
   if (error) {
-    return { error: error.message }
+    console.error('[updateEvent]', error)
+    return { error: 'Failed to update event' }
   }
 
   revalidatePath('/events')
@@ -137,12 +154,29 @@ export async function toggleEventStatus(id: string, isActive: boolean) {
 }
 
 export async function deleteEvent(id: string) {
+  const profile = await getCurrentAdminProfile()
+  if (!profile) return { error: 'Unauthorized' }
+
   const supabase = await createClient()
 
-  const { error } = await supabase.from('events').delete().eq('id', id)
+  // Branch admins can only delete events in their own branch
+  if (profile.role === 'branch_admin' && profile.branch_id) {
+    const { data: existing } = await supabase
+      .from('events').select('branch_id').eq('id', id).single()
+    if (!existing || existing.branch_id !== profile.branch_id) {
+      return { error: 'Unauthorized: you can only delete events in your branch' }
+    }
+  }
+
+  // Soft delete: set deleted_at/deleted_by instead of hard DELETE
+  const { error } = await supabase
+    .from('events')
+    .update({ deleted_at: new Date().toISOString(), deleted_by: profile.user_id })
+    .eq('id', id)
 
   if (error) {
-    return { error: error.message }
+    console.error('[deleteEvent]', error)
+    return { error: 'Failed to delete event' }
   }
 
   revalidatePath('/events')

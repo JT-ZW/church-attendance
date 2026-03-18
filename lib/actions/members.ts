@@ -5,22 +5,23 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { InsertMember, Member } from '@/lib/types/database.types'
+import { getCurrentAdminProfile } from '@/lib/actions/users'
+import { calculateAge, maskPhoneNumber } from '@/lib/utils/helpers'
 
-export async function checkPhoneExists(phoneNumber: string) {
+export async function checkPhoneExists(phoneNumber: string): Promise<boolean> {
   const supabase = createAdminClient()
-  
-  const { data, error } = await supabase
-    .from('members')
-    .select('id, full_name, phone_number')
-    .eq('phone_number', phoneNumber)
-    .single()
 
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 is "not found" error, which is expected when phone doesn't exist
-    throw new Error(error.message)
+  const { count, error } = await supabase
+    .from('members')
+    .select('id', { count: 'exact', head: true })
+    .eq('phone_number', phoneNumber)
+
+  if (error) {
+    console.error('[checkPhoneExists]', error)
+    return false
   }
 
-  return data
+  return (count ?? 0) > 0
 }
 
 export async function registerMember(memberData: Omit<InsertMember, 'id' | 'created_at'>) {
@@ -65,6 +66,7 @@ export async function getMembers(branchId?: string) {
         location
       )
     `)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (branchId) {
@@ -74,7 +76,8 @@ export async function getMembers(branchId?: string) {
   const { data, error } = await query
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getMembers]', error)
+    throw new Error('Failed to load members')
   }
 
   return data
@@ -97,14 +100,27 @@ export async function getMemberById(id: string) {
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getMemberById]', error)
+    throw new Error('Failed to load member')
   }
 
   return data
 }
 
 export async function updateMember(id: string, memberData: Partial<Member>) {
+  const profile = await getCurrentAdminProfile()
+  if (!profile) return { error: 'Unauthorized' }
+
   const supabase = await createClient()
+
+  // Branch admins can only update members within their own branch
+  if (profile.role === 'branch_admin' && profile.branch_id) {
+    const { data: existing } = await supabase
+      .from('members').select('branch_id').eq('id', id).single()
+    if (!existing || existing.branch_id !== profile.branch_id) {
+      return { error: 'Unauthorized: you can only modify members in your branch' }
+    }
+  }
 
   const { data, error } = await supabase
     .from('members')
@@ -114,7 +130,8 @@ export async function updateMember(id: string, memberData: Partial<Member>) {
     .single()
 
   if (error) {
-    return { error: error.message }
+    console.error('[updateMember]', error)
+    return { error: 'Failed to update member' }
   }
 
   revalidatePath('/members')
@@ -122,22 +139,80 @@ export async function updateMember(id: string, memberData: Partial<Member>) {
 }
 
 export async function deleteMember(id: string) {
+  const profile = await getCurrentAdminProfile()
+  if (!profile) return { error: 'Unauthorized' }
+
   const supabase = await createClient()
 
+  // Branch admins can only delete members within their own branch
+  if (profile.role === 'branch_admin' && profile.branch_id) {
+    const { data: existing } = await supabase
+      .from('members').select('branch_id').eq('id', id).single()
+    if (!existing || existing.branch_id !== profile.branch_id) {
+      return { error: 'Unauthorized: you can only modify members in your branch' }
+    }
+  }
+
+  // Soft delete: set deleted_at/deleted_by instead of hard DELETE
   const { error } = await supabase
     .from('members')
-    .delete()
+    .update({ deleted_at: new Date().toISOString(), deleted_by: profile.user_id })
     .eq('id', id)
 
   if (error) {
-    return { error: error.message }
+    console.error('[deleteMember]', error)
+    return { error: 'Failed to delete member' }
   }
 
   revalidatePath('/members')
   return { error: null }
 }
 
+// Public member search for the check-in page — returns no raw PII
+export type PublicMemberSearchResult = {
+  id: string
+  full_name: string
+  phone_masked: string
+  age: number
+  gender: string
+  branch_id: string | null
+  branch_name: string | null
+}
+
+export async function searchMembersPublic(searchTerm: string): Promise<PublicMemberSearchResult[]> {
+  if (searchTerm.trim().length < 2) return []
+
+  const supabase = createAdminClient()
+
+  const { data, error } = await supabase
+    .from('members')
+    .select('id, full_name, phone_number, date_of_birth, gender, branch_id, branches(name)')
+    .ilike('full_name', `%${searchTerm.trim()}%`)
+    .limit(10)
+
+  if (error) {
+    console.error('[searchMembersPublic]', error)
+    return []
+  }
+
+  return (data ?? []).map((m) => ({
+    id: m.id,
+    full_name: m.full_name,
+    phone_masked: maskPhoneNumber(m.phone_number),
+    age: m.date_of_birth ? calculateAge(m.date_of_birth) : 0,
+    gender: m.gender,
+    branch_id: m.branch_id ?? null,
+    branch_name: Array.isArray(m.branches)
+      ? (m.branches[0]?.name ?? null)
+      : ((m.branches as any)?.name ?? null),
+  }))
+}
+
 export async function searchMembers(searchTerm: string, branchId?: string) {
+  // Admin only
+  const profile = await getCurrentAdminProfile()
+  if (!profile) throw new Error('Unauthorized')
+
   const supabase = await createClient()
 
   let query = supabase
@@ -153,7 +228,8 @@ export async function searchMembers(searchTerm: string, branchId?: string) {
   const { data, error } = await query
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[searchMembers]', error)
+    throw new Error('Failed to search members')
   }
 
   return data

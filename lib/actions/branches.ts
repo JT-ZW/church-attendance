@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import type { InsertBranch, Branch } from '@/lib/types/database.types'
+import { getCurrentAdminProfile } from '@/lib/actions/users'
 
 export async function getBranches() {
   const supabase = await createClient()
@@ -10,10 +11,12 @@ export async function getBranches() {
   const { data, error } = await supabase
     .from('branches')
     .select('*')
+    .is('deleted_at', null)
     .order('name', { ascending: true })
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getBranches]', error)
+    throw new Error('Failed to load branches')
   }
 
   return data
@@ -29,13 +32,17 @@ export async function getBranchById(id: string) {
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getBranchById]', error)
+    throw new Error('Failed to load branch')
   }
 
   return data
 }
 
 export async function createBranch(branchData: Omit<InsertBranch, 'id' | 'created_at'>) {
+  const profile = await getCurrentAdminProfile()
+  if (profile?.role !== 'super_admin') return { error: 'Unauthorized: only super admins can create branches' }
+
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -45,7 +52,8 @@ export async function createBranch(branchData: Omit<InsertBranch, 'id' | 'create
     .single()
 
   if (error) {
-    return { error: error.message }
+    console.error('[createBranch]', error)
+    return { error: 'Failed to create branch' }
   }
 
   revalidatePath('/branches')
@@ -53,6 +61,14 @@ export async function createBranch(branchData: Omit<InsertBranch, 'id' | 'create
 }
 
 export async function updateBranch(id: string, branchData: Partial<Branch>) {
+  const profile = await getCurrentAdminProfile()
+  if (!profile) return { error: 'Unauthorized' }
+
+  // Branch admins can only update their own branch
+  if (profile.role === 'branch_admin' && profile.branch_id !== id) {
+    return { error: 'Unauthorized: you can only modify your own branch' }
+  }
+
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -63,7 +79,8 @@ export async function updateBranch(id: string, branchData: Partial<Branch>) {
     .single()
 
   if (error) {
-    return { error: error.message }
+    console.error('[updateBranch]', error)
+    return { error: 'Failed to update branch' }
   }
 
   revalidatePath('/branches')
@@ -71,15 +88,20 @@ export async function updateBranch(id: string, branchData: Partial<Branch>) {
 }
 
 export async function deleteBranch(id: string) {
+  const profile = await getCurrentAdminProfile()
+  if (profile?.role !== 'super_admin') return { error: 'Unauthorized: only super admins can delete branches' }
+
   const supabase = await createClient()
 
+  // Soft delete: set deleted_at/deleted_by instead of hard DELETE
   const { error } = await supabase
     .from('branches')
-    .delete()
+    .update({ deleted_at: new Date().toISOString(), deleted_by: profile.user_id })
     .eq('id', id)
 
   if (error) {
-    return { error: error.message }
+    console.error('[deleteBranch]', error)
+    return { error: 'Failed to delete branch' }
   }
 
   revalidatePath('/branches')

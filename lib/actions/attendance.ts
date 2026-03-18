@@ -10,7 +10,7 @@ export async function checkIn(memberId: string, eventId: string) {
   // Check if event exists and is active
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('id, is_active, title')
+    .select('id, is_active, title, event_date')
     .eq('id', eventId)
     .single()
 
@@ -20,6 +20,13 @@ export async function checkIn(memberId: string, eventId: string) {
 
   if (!event.is_active) {
     return { error: 'This event is no longer active for check-ins' }
+  }
+
+  // Reject check-ins for events that ended more than 24 hours ago
+  const eventDate = new Date((event as any).event_date ?? '')
+  const hoursSince = (Date.now() - eventDate.getTime()) / (1000 * 60 * 60)
+  if (!isNaN(hoursSince) && hoursSince > 24) {
+    return { error: 'This event has expired and is no longer accepting check-ins' }
   }
 
   // Check if already checked in
@@ -45,7 +52,8 @@ export async function checkIn(memberId: string, eventId: string) {
     .single()
 
   if (error) {
-    return { error: error.message }
+    console.error('[checkIn]', error)
+    return { error: 'Failed to record check-in' }
   }
 
   revalidatePath(`/events/${eventId}`)
@@ -76,7 +84,8 @@ export async function getAttendanceByEvent(eventId: string) {
     .order('checked_in_at', { ascending: false })
 
   if (error) {
-    throw new Error(error.message)
+    console.error('[getAttendanceByEvent]', error)
+    throw new Error('Failed to load attendance')
   }
 
   return data
@@ -93,7 +102,8 @@ export async function hasCheckedIn(memberId: string, eventId: string) {
     .single()
 
   if (error && error.code !== 'PGRST116') {
-    throw new Error(error.message)
+    console.error('[hasCheckedIn]', error)
+    throw new Error('Failed to check attendance status')
   }
 
   return !!data
@@ -153,7 +163,8 @@ export async function familyCheckIn(memberIds: string[], eventId: string) {
     .insert(toCheckIn.map((member_id) => ({ member_id, event_id: eventId })))
 
   if (insertError) {
-    return { error: insertError.message }
+    console.error('[familyCheckIn]', insertError)
+    return { error: 'Failed to record check-in' }
   }
 
   revalidatePath(`/events/${eventId}`)

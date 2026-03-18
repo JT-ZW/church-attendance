@@ -146,7 +146,8 @@ export async function sendPasswordReset(email: string): Promise<{ error: string 
   // The admin generateLink API only returns the link without emailing it.
   const supabase = await createClient()
 
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!siteUrl) throw new Error('NEXT_PUBLIC_APP_URL environment variable is not configured')
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     // Supabase will append ?code=XXX to this URL.

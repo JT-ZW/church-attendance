@@ -5,7 +5,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/dashboard'
+  // Validate next to prevent open-redirect: only allow relative paths
+  const rawNext = requestUrl.searchParams.get('next') ?? '/dashboard'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard'
   const origin = requestUrl.origin
 
   if (code) {
@@ -23,7 +25,9 @@ export async function GET(request: NextRequest) {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               )
-            } catch {}
+            } catch (e) {
+              console.error('[auth/callback] Failed to set cookie:', e)
+            }
           },
         },
       }

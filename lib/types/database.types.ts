@@ -15,6 +15,8 @@ export type Database = {
           name: string
           location: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
         }
         Insert: {
           id?: string
@@ -27,6 +29,8 @@ export type Database = {
           name?: string
           location?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
         }
       }
       members: {
@@ -47,6 +51,8 @@ export type Database = {
           family_id: string | null
           family_role: 'head' | 'spouse' | 'child' | 'other' | null
           registered_by_member_id: string | null
+          deleted_at: string | null
+          deleted_by: string | null
         }
         Insert: {
           id?: string
@@ -83,6 +89,8 @@ export type Database = {
           family_id?: string | null
           family_role?: 'head' | 'spouse' | 'child' | 'other' | null
           registered_by_member_id?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
         }
       }
       events: {
@@ -96,6 +104,8 @@ export type Database = {
           is_active: boolean
           created_by: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
         }
         Insert: {
           id?: string
@@ -118,6 +128,8 @@ export type Database = {
           is_active?: boolean
           created_by?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
         }
       }
       attendance: {
@@ -138,6 +150,29 @@ export type Database = {
           member_id?: string
           event_id?: string
           checked_in_at?: string
+        }
+      }
+      login_attempts: {
+        Row: {
+          id: string
+          email: string
+          ip_address: string | null
+          attempted_at: string
+          success: boolean
+        }
+        Insert: {
+          id?: string
+          email: string
+          ip_address?: string | null
+          attempted_at?: string
+          success?: boolean
+        }
+        Update: {
+          id?: string
+          email?: string
+          ip_address?: string | null
+          attempted_at?: string
+          success?: boolean
         }
       }
       admin_profiles: {
