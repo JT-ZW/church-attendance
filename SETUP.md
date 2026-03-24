@@ -38,10 +38,12 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 3. Copy the entire contents of `supabase-schema.sql` from your project root
 4. Paste it into the SQL editor
 5. Click "Run" (or press Ctrl+Enter)
-6. You should see: "Success. No rows returned"
+6. Create another new query and run `supabase-guest-attendance.sql`
+7. You should see: "Success. No rows returned"
 
 This will create:
-- ✅ All tables (branches, members, events, attendance)
+- ✅ All core tables (branches, members, events, attendance)
+- ✅ Guest tables (`guests`, `guest_attendance`) for admin guest check-ins
 - ✅ Indexes for performance
 - ✅ Row Level Security (RLS) policies
 - ✅ Helper functions (calculate_age, get_age_group)
@@ -67,6 +69,8 @@ This will create:
    - members
    - events
    - attendance
+   - guests
+   - guest_attendance
 3. Click on "branches" and verify one default branch exists
 
 ## Step 7: Enable Realtime (Optional but Recommended)

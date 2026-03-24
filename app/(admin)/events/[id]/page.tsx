@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getEventById } from '@/lib/actions/events'
-import { getAttendanceByEvent } from '@/lib/actions/attendance'
+import { getAttendanceByEvent, getGuestAttendanceByEvent } from '@/lib/actions/attendance'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Calendar, Users, Clock, MapPin, TrendingUp, QrCode } from 'lucide-react'
@@ -19,18 +19,24 @@ export default async function EventDetailPage({ params }: Props) {
   const { id } = await params
   
   try {
-    const [event, attendance] = await Promise.all([
+    const [event, attendance, guestAttendance] = await Promise.all([
       getEventById(id),
       getAttendanceByEvent(id),
+      getGuestAttendanceByEvent(id),
     ])
 
     if (!event) {
       notFound()
     }
 
-    const totalAttendees = attendance.length
-    const maleCount = attendance.filter((a) => a.members?.gender === 'Male').length
-    const femaleCount = attendance.filter((a) => a.members?.gender === 'Female').length
+    const memberMaleCount = attendance.filter((a) => a.members?.gender === 'Male').length
+    const memberFemaleCount = attendance.filter((a) => a.members?.gender === 'Female').length
+    const guestMaleCount = guestAttendance.filter((a: any) => a.guests?.gender === 'Male').length
+    const guestFemaleCount = guestAttendance.filter((a: any) => a.guests?.gender === 'Female').length
+
+    const totalAttendees = attendance.length + guestAttendance.length
+    const maleCount = memberMaleCount + guestMaleCount
+    const femaleCount = memberFemaleCount + guestFemaleCount
 
     // Calculate age distribution for this event
     const ageGroups = {
@@ -197,6 +203,7 @@ export default async function EventDetailPage({ params }: Props) {
         <EventAttendanceList
           eventId={id}
           initialAttendance={attendance}
+          initialGuestAttendance={guestAttendance}
           eventTitle={event.title}
           eventDate={event.event_date}
           branchName={event.branches?.name || ''}

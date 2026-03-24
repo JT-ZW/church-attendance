@@ -152,6 +152,49 @@ export type Database = {
           checked_in_at?: string
         }
       }
+      guests: {
+        Row: {
+          id: string
+          full_name: string
+          gender: 'Male' | 'Female'
+          phone_number: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          full_name: string
+          gender: 'Male' | 'Female'
+          phone_number?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          gender?: 'Male' | 'Female'
+          phone_number?: string | null
+          created_at?: string
+        }
+      }
+      guest_attendance: {
+        Row: {
+          id: string
+          guest_id: string
+          event_id: string
+          checked_in_at: string
+        }
+        Insert: {
+          id?: string
+          guest_id: string
+          event_id: string
+          checked_in_at?: string
+        }
+        Update: {
+          id?: string
+          guest_id?: string
+          event_id?: string
+          checked_in_at?: string
+        }
+      }
       login_attempts: {
         Row: {
           id: string
@@ -230,11 +273,15 @@ export type Branch = Database['public']['Tables']['branches']['Row']
 export type Member = Database['public']['Tables']['members']['Row']
 export type Event = Database['public']['Tables']['events']['Row']
 export type Attendance = Database['public']['Tables']['attendance']['Row']
+export type Guest = Database['public']['Tables']['guests']['Row']
+export type GuestAttendance = Database['public']['Tables']['guest_attendance']['Row']
 
 export type InsertBranch = Database['public']['Tables']['branches']['Insert']
 export type InsertMember = Database['public']['Tables']['members']['Insert']
 export type InsertEvent = Database['public']['Tables']['events']['Insert']
 export type InsertAttendance = Database['public']['Tables']['attendance']['Insert']
+export type InsertGuest = Database['public']['Tables']['guests']['Insert']
+export type InsertGuestAttendance = Database['public']['Tables']['guest_attendance']['Insert']
 
 // Extended types with relations
 export type MemberWithBranch = Member & {
@@ -247,6 +294,11 @@ export type EventWithBranch = Event & {
 
 export type AttendanceWithDetails = Attendance & {
   members: MemberWithBranch
+  events: Event
+}
+
+export type GuestAttendanceWithDetails = GuestAttendance & {
+  guests: Guest
   events: Event
 }
 

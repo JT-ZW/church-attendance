@@ -136,3 +136,20 @@ export const checkInSearchSchema = z.object({
 })
 
 export type CheckInSearchData = z.infer<typeof checkInSearchSchema>
+
+// Admin guest attendance schema
+export const guestAttendanceSchema = z.object({
+  full_name: z.string().min(2, 'Full name must be at least 2 characters').max(100, 'Full name too long'),
+  gender: z.enum(['Male', 'Female'], {
+    message: 'Please select a gender',
+  }),
+  phone_number: z
+    .string()
+    .regex(/^[0-9+\-\s()]+$/, 'Invalid phone number format')
+    .min(10, 'Phone number must be at least 10 digits')
+    .max(20, 'Phone number too long')
+    .optional()
+    .or(z.literal('')),
+})
+
+export type GuestAttendanceFormData = z.infer<typeof guestAttendanceSchema>

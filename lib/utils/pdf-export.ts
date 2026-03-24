@@ -338,11 +338,27 @@ export function exportAnalyticsPDF(data: any, branchName: string) {
 
 // ─── ATTENDANCE REPORT ─────────────────────────────────────────────────────────
 
+type AttendanceExportRow = {
+  id: string
+  type: 'Member' | 'Guest'
+  full_name: string
+  gender: 'Male' | 'Female' | 'N/A'
+  age: number | null
+  phone_number: string | null
+  branch_name: string | null
+  checked_in_at: string
+}
+
+type AttendanceExportOptions = {
+  scope?: 'combined' | 'members' | 'guests'
+}
+
 export function exportAttendancePDF(
-  attendance: any[],
+  attendanceRows: AttendanceExportRow[],
   eventTitle: string,
   eventDate: string,
-  branchName: string
+  branchName: string,
+  options?: AttendanceExportOptions
 ) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
 
@@ -353,73 +369,80 @@ export function exportAttendancePDF(
     branchName
   )
 
-  const male   = attendance.filter(r => r.members?.gender === 'Male').length
-  const female = attendance.filter(r => r.members?.gender === 'Female').length
-  const total  = attendance.length
+  const male = attendanceRows.filter((r) => r.gender === 'Male').length
+  const female = attendanceRows.filter((r) => r.gender === 'Female').length
+  const members = attendanceRows.filter((r) => r.type === 'Member').length
+  const guests = attendanceRows.filter((r) => r.type === 'Guest').length
+  const total = attendanceRows.length
 
   // ── KPI tiles ────────────────────────────────────────────────────
   y = addSectionTitle(doc, 'Event Summary', y)
   y = drawKPIRow(doc, [
-    { label: 'Total Checked In', value: String(total),  color: BLACK },
-    { label: 'Male Attendees',   value: String(male),   color: BLUE  },
-    { label: 'Female Attendees', value: String(female), color: PINK  },
+    { label: 'Total Checked In', value: String(total), color: BLACK },
+    { label: 'Members', value: String(members), color: BLUE },
+    { label: 'Guests', value: String(guests), color: PURPLE },
+    { label: 'Female', value: String(female), color: PINK },
   ], y)
 
   // ── Gender bar ────────────────────────────────────────────────────
   y = addSectionTitle(doc, 'Gender Breakdown', y)
-  y = drawHBar(doc, 'Male',   male,   total, BLUE, y)
-  y = drawHBar(doc, 'Female', female, total, PINK, y)
+  y = drawHBar(doc, 'Male', male, total || 1, BLUE, y)
+  y = drawHBar(doc, 'Female', female, total || 1, PINK, y)
   y += 6
 
-  // ── Age distribution for this event ──────────────────────────────
+  // ── Age distribution for rows that include age ───────────────────
   const ageGroups: Record<string, number> = { '0-12': 0, '13-18': 0, '19-35': 0, '36-60': 0, '60+': 0 }
-  attendance.forEach(r => {
-    if (r.members?.date_of_birth) {
-      const age = Math.floor((Date.now() - new Date(r.members.date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 365))
-      if      (age <= 12) ageGroups['0-12']++
-      else if (age <= 18) ageGroups['13-18']++
-      else if (age <= 35) ageGroups['19-35']++
-      else if (age <= 60) ageGroups['36-60']++
-      else                ageGroups['60+']++
-    }
+  attendanceRows.forEach((row) => {
+    if (row.age === null) return
+    const age = row.age
+    if      (age <= 12) ageGroups['0-12']++
+    else if (age <= 18) ageGroups['13-18']++
+    else if (age <= 35) ageGroups['19-35']++
+    else if (age <= 60) ageGroups['36-60']++
+    else                ageGroups['60+']++
   })
   const AGE_COLORS = [PURPLE, CYAN, GREEN, AMBER, PINK]
   const ageEntries = Object.entries(ageGroups)
   const hasAgeData = ageEntries.some(([, v]) => v > 0)
   if (hasAgeData) {
-    y = addSectionTitle(doc, 'Age Distribution', y)
+    y = addSectionTitle(doc, 'Age Distribution (Where Available)', y)
     ageEntries.forEach(([label, val], idx) => {
-      y = drawHBar(doc, label, val, total, AGE_COLORS[idx], y)
+      y = drawHBar(doc, label, val, total || 1, AGE_COLORS[idx], y)
     })
     y += 4
   }
 
   // ── Attendance register ───────────────────────────────────────────
   y = ensureSpace(doc, y, 20)
-  y = addSectionTitle(doc, `Attendance Register  (${total} members)`, y)
+  const scopeLabel = options?.scope
+    ? options.scope.charAt(0).toUpperCase() + options.scope.slice(1)
+    : 'Combined'
+  y = addSectionTitle(doc, `Attendance Register (${scopeLabel} · ${total} rows)`, y)
   autoTable(doc, {
     startY: y,
-    head: [['#', 'Full Name', 'Gender', 'Age', 'Phone', 'Branch', 'Check-in Time']],
-    body: attendance.map((record, i) => {
-      const dob = record.members?.date_of_birth
-      const age = dob
-        ? Math.floor((Date.now() - new Date(dob).getTime()) / (1000 * 60 * 60 * 24 * 365))
-        : 'N/A'
+    head: [['#', 'Type', 'Full Name', 'Gender', 'Age', 'Phone', 'Branch', 'Check-in Time']],
+    body: attendanceRows.map((row, i) => {
       return [
         i + 1,
-        record.members?.full_name || 'Unknown',
-        record.members?.gender || 'N/A',
-        age,
-        record.members?.phone_number || 'N/A',
-        record.members?.branches?.name || 'N/A',
-        new Date(record.checked_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        row.type,
+        row.full_name || 'Unknown',
+        row.gender || 'N/A',
+        row.age ?? 'N/A',
+        row.phone_number || 'N/A',
+        row.branch_name || 'N/A',
+        new Date(row.checked_in_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       ]
     }),
     theme: 'grid',
     headStyles: { fillColor: BLACK, textColor: WHITE, fontSize: 8, fontStyle: 'bold' },
     bodyStyles: { fontSize: 8, textColor: DARK_GRAY },
     alternateRowStyles: { fillColor: LIGHT_GRAY },
-    columnStyles: { 0: { cellWidth: 8, halign: 'center' }, 3: { cellWidth: 10, halign: 'center' }, 6: { cellWidth: 22 } },
+    columnStyles: {
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 14, halign: 'center' },
+      4: { cellWidth: 10, halign: 'center' },
+      7: { cellWidth: 22 },
+    },
     margin: { left: 14, right: 14 },
   })
 

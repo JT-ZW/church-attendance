@@ -27,11 +27,12 @@
    - In Supabase dashboard: SQL Editor → New Query
    - Copy entire content from `supabase-schema.sql`
    - Paste and click "Run"
+   - Then run `supabase-guest-attendance.sql`
    - You should see "Success. No rows returned"
 
 2. **Verify Tables**
    - Go to Database → Tables
-   - Confirm you see: `branches`, `members`, `events`, `attendance`
+   - Confirm you see: `branches`, `members`, `events`, `attendance`, `guests`, `guest_attendance`
 
 ### Step 3: Create Admin User (2 minutes)
 
