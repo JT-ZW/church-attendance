@@ -73,6 +73,16 @@ export default function AgeDistributionChart({ data }: AgeDistributionChartProps
                   fill="#3b82f6"
                   rx={2}
                 />
+                <text
+                  x={mx + barW / 2}
+                  y={Math.max(10, innerH - barH(group.male) - 6)}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill="#3b82f6"
+                >
+                  {group.male}
+                </text>
                 {/* Female bar */}
                 <rect
                   x={fx}
@@ -82,6 +92,16 @@ export default function AgeDistributionChart({ data }: AgeDistributionChartProps
                   fill="#ec4899"
                   rx={2}
                 />
+                <text
+                  x={fx + barW / 2}
+                  y={Math.max(10, innerH - barH(group.female) - 6)}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill="#ec4899"
+                >
+                  {group.female}
+                </text>
                 {/* X axis label — wrap on space if needed */}
                 {group.name.includes(' ') ? (
                   group.name.split(' ').map((word, wi) => (

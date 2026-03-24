@@ -104,6 +104,19 @@ export default function AttendanceTrendChart({ data }: AttendanceTrendChartProps
                 stroke="#3b82f6"
                 strokeWidth={2}
               />
+              <text
+                x={xPos(i)}
+                y={Math.max(12, yPos(d.attendance) - 10)}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={600}
+                fill="#1d4ed8"
+                stroke="#ffffff"
+                strokeWidth={3}
+                paintOrder="stroke"
+              >
+                {d.attendance}
+              </text>
             </g>
           ))}
 
